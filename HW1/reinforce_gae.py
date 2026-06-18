@@ -2,6 +2,7 @@
 # HW1: REINFORCE with baseline and GAE
 
 import os
+from pathlib import Path
 import gym
 from itertools import count
 from collections import namedtuple
@@ -18,8 +19,12 @@ from torch.utils.tensorboard import SummaryWriter
 # Define a useful tuple (optional)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
+HW_DIR = Path(__file__).resolve().parents[1]
+CHECKPOINT_DIR = HW_DIR / "checkpoints" / "reinforce_gae"
+RUN_DIR = HW_DIR / "runs" / "reinforce_gae"
+
 # Define a tensorboard writer
-writer = SummaryWriter("./tb_record_lunar_gae")
+writer = SummaryWriter(str(RUN_DIR))
 
 def gym_reset(env, seed=None):
     try:
@@ -243,8 +248,8 @@ def train(env, lr=0.001, gamma=0.99, lam=0.95, max_episodes=50000, batch_size=5)
         
 
         if ewma_reward > 200:
-            os.makedirs("./preTrained", exist_ok=True)
-            model_path = f"./preTrained/LunarLander_gae_{lr}.pth"
+            CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+            model_path = CHECKPOINT_DIR / f"LunarLander_gae_{lr}.pth"
             torch.save(model.state_dict(), model_path)
             print("Solved! Running reward is now {} and "
                   "the last episode runs to {} time steps!".format(ewma_reward, t))
@@ -275,4 +280,4 @@ if __name__ == '__main__':
     env = gym.make("LunarLander-v2")
     torch.manual_seed(random_seed)
     train(env, lr=lr, gamma=0.99, lam=0.95, max_episodes=50000, batch_size=5)
-    test(env, f"./preTrained/LunarLander_gae_{lr}.pth")
+    test(env, CHECKPOINT_DIR / f"LunarLander_gae_{lr}.pth")

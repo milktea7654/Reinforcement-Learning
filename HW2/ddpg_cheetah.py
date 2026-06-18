@@ -7,6 +7,7 @@ import numpy as np
 import os
 import time
 import random
+from pathlib import Path
 from collections import namedtuple
 import torch
 import torch.nn as nn
@@ -26,8 +27,12 @@ from tqdm import trange
 #    },
 #)
 
+HW_DIR = Path(__file__).resolve().parents[1]
+CHECKPOINT_DIR = HW_DIR / "checkpoints" / "ddpg_cheetah"
+RUN_DIR = HW_DIR / "runs" / "ddpg_cheetah"
+
 # Define a tensorboard writer
-#writer = SummaryWriter("./tb_record_3")
+#writer = SummaryWriter(str(RUN_DIR))
 
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):
@@ -212,13 +217,12 @@ class DDPG(object):
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
         local_time = time.localtime()
         timestamp = time.strftime("%m%d%Y_%H%M%S", local_time)
-        if not os.path.exists('preTrained/'):
-            os.makedirs('preTrained/')
+        CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
         if actor_path is None:
-            actor_path = "preTrained/ddpg_cheetah_actor_{}_{}_{}".format(env_name, timestamp, suffix) 
+            actor_path = CHECKPOINT_DIR / "ddpg_cheetah_actor_{}_{}_{}".format(env_name, timestamp, suffix)
         if critic_path is None:
-            critic_path = "preTrained/ddpg_cheetah_critic_{}_{}_{}".format(env_name, timestamp, suffix) 
+            critic_path = CHECKPOINT_DIR / "ddpg_cheetah_critic_{}_{}_{}".format(env_name, timestamp, suffix)
         print('Saving models to {} and {}'.format(actor_path, critic_path))
         torch.save(self.actor.state_dict(), actor_path)
         torch.save(self.critic.state_dict(), critic_path)
@@ -244,7 +248,7 @@ def train():
     agent = DDPG(env.observation_space.shape[0], env.action_space,
              hidden_size=hidden_size).to(device)  
     noise = OUNoise(env.action_space.shape[0])
-    writer = SummaryWriter('./runs/ddpg_cheetah')
+    writer = SummaryWriter(str(RUN_DIR))
     wandb.init(project='ddpg-cheetah', config={'total_steps':total_numsteps})
 
     s_np, _ = env.reset(seed=10)
